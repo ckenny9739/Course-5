@@ -58,8 +58,8 @@ int main(int argc, char* argv[])
 	  break;
 	case 'c':
 	  cPID = fork();
-	  if (argc - optind < 4)
-	    fprintf(stderr, "File descriptor error\n");
+	  //	  if (argc - optind < 4)
+	  //  fprintf(stderr, "File descriptor error\n");
 	  
 	  fdi = atoi(argv[optind++]);
 	  fdo = atoi(argv[optind++]);
@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
 		  close(fdi);
 		  close(fdo);
 		  close(fde);
-		  execvp(command, &argv[optind]); // Put in the command in first, args in second
+		  execvp(command, &(argv[optind])); // Put in the command in first, args in second
 		}
 	    }
 	  else

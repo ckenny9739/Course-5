@@ -30,9 +30,10 @@ $(DISTDIR).tar.gz: $(DIST_SOURCES) check-dist
 check: $(TEST_BASES)
 
 $(TEST_BASES): simpsh
-	./$@.sh
+	chmod +x test.sh
+	./test.sh
 
 clean:
-	rm -fr *.o *~ *.bak *.tar.gz core *.core *.tmp simpsh $(DISTDIR)
+	rm -fr *.o *~ *.bak *.tar.gz core *.core *.tmp tmp simpsh $(DISTDIR)
 
 .PHONY: all dist check $(TEST_BASES) clean

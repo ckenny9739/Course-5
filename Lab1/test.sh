@@ -60,6 +60,7 @@ should_fail "empty command should have no options"
 ./simpsh --verbose --command 1 2 3 2>&1 | grep "command requires at least 4 options" > /dev/null
 should_succeed "command requires at least 4 arguments"
 
+
 ./simpsh --verbose --command 1 2 3 2>&1 | grep "command requires at least 4 options" > /dev/null
 should_succeed "command reports malformed command options to user on stderr"
 
@@ -121,9 +122,19 @@ should_succeed "the temporary file 2 should have 'bar'"
 cat "$tmp_file2" | grep "foo" > /dev/null && cat "$tmp_file2" | wc -l | grep 1 > /dev/null
 should_succeed "should be able to cat from one file to the other (replace bar with foo)"
 
+
+./simpsh --rdonly "$tmp_file" --command 0 0 0 echo "foo"
+echo "$?" | grep "1" > /dev/null
+should_succeed "exit status of failed subcommand should be the exit status of simpsh"
+
+
+# NOTE: the bin/exit.sh provides an interesting exist value that should trump
+# the first command's exit value of 1
+./simpsh --rdonly "$tmp_file" --command 0 0 0 echo "foo" --command 0 0 0 bash bin/exit.sh
+echo "$?" | grep "5" > /dev/null
+should_succeed "max exit status of failed subcommand should be the exit status of simpsh"
+
 # TODO: test that verbose outputs each of the options in the right order
 # TODO: test with larger number file descriptors
-# TODO: exit status is the max exit status from all commands
-# > When simpsh exits other than in response to a signal, it should exit with status equal to the maximum of all the exit statuses of all the subcommands that it ran and successfully waited for. However, if there are no such subcommands, or if the maximum is zero, simpsh should exit with status 0 if all options succeeded, and with status 1 one of them failed. For example, if a file could not be opened, simpsh must exit with nonzero status.
 
 echo "Success"
