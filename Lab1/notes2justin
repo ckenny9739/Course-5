@@ -1,0 +1,10 @@
+I have been trying to get command to work properly but it keeps trying to use my arguments to my command as seperate commands.
+Hopefully we can end up working with other people to see if they have finished it already.
+I have basically been calling
+./simpsh --rdonly a --wronly b --wronly c --command 0 1 2 sort
+OR
+./simpsh --rdonly a --wronly b --wronly c --command 0 1 2 tr A-Z a-z
+OR
+./simpsh --rdonly a --wronly b --wronly c --command 0 1 2 sort --command 0 1 2 tr A-Z a-z
+
+See if you have any luck... Text me if you have any questions

@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <string.h>
-
+#include <sys/wait.h>
 
 int check_size(int* file_descriptors, int fd_ind, int fd_size)
 {
@@ -43,7 +43,6 @@ int main(int argc, char* argv[])
   int ret;
   pid_t cPID;
   int fdi, fdo, fde;
-  char *command;
   char *args[512]; // limitation?
   int i;
   int j = 0;
@@ -97,13 +96,9 @@ int main(int argc, char* argv[])
 	  break;
 	  
 	case 'c':
-	  optind--;
-	  cPID = fork();
-	  printf("Finished fork\n");
 	  fdi = atoi(argv[optind++]);
 	  fdo = atoi(argv[optind++]);
 	  fde = atoi(argv[optind++]);
-	  command = argv[optind++];
 	  for (i = optind; i < argc; i++)
 	    {
 	      if (argv[i][0] == '-' && argv[i][1] == '-')
@@ -112,29 +107,39 @@ int main(int argc, char* argv[])
 	    }
 	  if (file_descriptors[fdi] != fdi || file_descriptors[fdo] != fdo || file_descriptors[fde] != fde)
 	    fprintf(stderr, "Invalid file descriptor\n");
+	  printf("input: %d, output: %d, error: %d\n", fdi, fdo, fde);
 	  printf("Made it to before forking stuff\n");
+	  cPID = fork();
+	  printf("Finished fork\n");
 	  if (cPID >= 0)
 	    {
 	      if (cPID == 0) // Child process
 		{
+		  printf("Child Process\n");
 		  if (dup2(fdi, STDIN_FILENO) == -1)
 		    fprintf(stderr, "Invalid file descriptor - input");
 		  if (dup2(fdo, STDOUT_FILENO) == -1)
 		    fprintf(stderr, "Invalid file descriptor - output");
 		  if (dup2(fde, STDERR_FILENO) == -1)
 		    fprintf(stderr, "Invalid file descriptor - error");
-      		  close(fdi);
-		  close(fdo);
-		  close(fde);
-		  execvp(command, args); // Put in the command in first, args in second
+		  //      		  close(fdi);
+		  //		  close(fdo);
+		  //close(fde);
+		  printf("Round 2: input: %d, output: %d, error: %d\n", fdi, fdo, fde);
+		  printf("Command: %s\n", args[0]);
+		  printf("Arguments: %s\n", args[0]);
+		  printf("Arguments: %s\n", args[1]);
+		  printf("Arguments: %s\n", args[2]);
+		  execvp(args[0], args); // Put in the command name in first, args (including args[0] as name) in second
 		}
+	      //		  waitpid(-1, &ret, 0);
 	    }
 	  else
 	    {
 	      fprintf(stderr, "Could not create child process");
 	      // fork failed
 	    }
-	  printf("Finished command\n");
+	  printf("Thread - %d Finished command\n", cPID);
 	  break;
 	case 'd':
 	  verbose_flag = 1;
