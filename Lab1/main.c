@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <getopt.h>
 
 // Main
@@ -17,13 +18,15 @@ int main(int argc, char* argv[])
       {"verbose",  no_argument,         0, 'd'},
       {0,0,0,0},
     };
-
   
   int option_index = 0;
   int iarg = 0;
   int verbose_flag = 0;
   int exit_status = 0;
   int ret;
+  pid_t cPID;
+  int fdi, fdo, fde;
+  char* command;
   
   while (iarg != -1)
     {
@@ -54,19 +57,25 @@ int main(int argc, char* argv[])
 	    fprintf(stderr, "File error\n");
 	  break;
 	case 'c':
-	  pid_t cPID = fork();
+	  cPID = fork();
 	  if (argc - optind < 4)
 	    fprintf(stderr, "File descriptor error\n");
 	  
-	  int fdi = argv[optind++];
-	  int fdo = argv[optind++];
-	  int fde = argv[optind++];
-	  char *command = argv[optind++];
+	  fdi = atoi(argv[optind++]);
+	  fdo = atoi(argv[optind++]);
+	  fde = atoi(argv[optind++]);
+	  command = argv[optind++];
       	  if (cPID >= 0)
 	    {
 	      if (cPID == 0) // Child process
 		{
-		  execvp(command, argv[optind]); // Put in the command in first, args in second
+		  dup2(fdi, STDIN_FILENO);
+		  dup2(fdo, STDOUT_FILENO);
+		  dup2(fde, STDERR_FILENO);
+		  close(fdi);
+		  close(fdo);
+		  close(fde);
+		  execvp(command, &argv[optind]); // Put in the command in first, args in second
 		}
 	    }
 	  else
@@ -78,8 +87,7 @@ int main(int argc, char* argv[])
 	case 'd':
 	  verbose_flag = 1;
 	  break;
-	default:
-	  // No default case required, caught by the ? above switch
+	 // No default case required, caught by the ? above switch
 	}
     }
   return 0;
