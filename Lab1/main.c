@@ -8,14 +8,14 @@
 #include <sys/wait.h>
 #include <errno.h>
 
-int check_size(int* file_descriptors, int fd_ind, int *fd_size)
+int check_size(int* arr, int arr_ind, int *arr_size)
 {
-  if (fd_ind >= (*fd_size))
+  if (arr_ind >= (*arr_size))
     {
-      (*fd_size) = (*fd_size) * 2;
-      file_descriptors = (int*) realloc(file_descriptors, (*fd_size));
+      (*arr_size) = (*arr_size) * 2;
+      arr = (int*) realloc(arr, (*arr_size));
     }
-  if (!file_descriptors)
+  if (!arr)
     return 1; //Returns 1 on error
   return 0;
 }
@@ -38,19 +38,17 @@ int main(int argc, char* argv[])
   int option_index = 0;
   int iarg = 0;
   int verbose_flag = 0;
-  int exit_status = 0;
   int fd_ind = 0;
   int fd_size = 128;
-  int* file_descriptors = (int*) malloc(128*sizeof(int));
+  int* file_descriptors = (int*) malloc(fd_size*sizeof(int));
   int fdi, fdo, fde;
   int ret;
   pid_t cPID;
-  char *args[512]; // limitation?
+  int arg_ind = 0;
+  int arg_size = 512;
+  char **args = (char**) malloc(arg_size*sizeof(char));
   int i;
   int j = 0;
-  
-  
-  // KEEP TRACK OF FILE DESCRIPTORS
   
   while (iarg != -1)
     {
@@ -63,7 +61,7 @@ int main(int argc, char* argv[])
       
       if (long_opts[iarg-'a'].has_arg == required_argument)
 	optind--;
-      
+
       if (verbose_flag == 1) {
 	printf("--%s", long_opts[iarg-'a'].name);
 	for (i = optind; i < argc; i++)
@@ -75,23 +73,22 @@ int main(int argc, char* argv[])
 	printf("\n");
       }
 
-      // Doesn't work for command
-      
       if (iarg == '?')
 	continue;
-      
-      // - is standard input
-      // fileno
       
       switch (iarg)
 	{
 	case 'a':
 	  ret = check_size(file_descriptors, fd_ind, (&fd_size));
-	  if (ret == -1)
+	  if (ret == -1) {
 	    fprintf(stderr, "Memory allocation error for file descriptors\n");
+	    break;
+	  }
 	  ret = open(optarg, O_RDONLY);
-	  if (ret < 0)
+	  if (ret < 0) {
 	    fprintf(stderr, "File error\n");
+	    break;
+	  }
 	  file_descriptors[fd_ind++] = ret;
 	  //  printf("file_descriptors[fd_ind++] (for read) : %d\n", ret);
 	  //  printf("Finished read\n");
@@ -99,23 +96,43 @@ int main(int argc, char* argv[])
 	  
 	case 'b':
 	  ret = check_size(file_descriptors, fd_ind, (&fd_size));
-	  if (ret == -1)
+	  if (ret == -1) {
 	    fprintf(stderr, "Memory allocation error for file descriptors\n");
+	    break;
+	  }
 	  ret = open(optarg, O_WRONLY);
-	  if (ret < 0)
+	  if (ret < 0) {
 	    fprintf(stderr, "File error\n");
+	    break;
+	  }
 	  file_descriptors[fd_ind++] = ret;
 	  //  printf("file_descriptors[fd_ind++] (for write) : %d\n", ret);
 	  //  printf("Finished write\n");
 	  break;
 	  
 	case 'c':
+	  if(argc - optind < 4) {
+	    fprintf(stderr, "Not enough arguments\n");
+	    break;
+	  }
+	  if (sscanf (argv[optind++], "%i", &fdi) != 1) {
+	    fprintf(stderr, "Not a file descriptor\n");
+	    break;
+	  }
+
+	  if (sscanf (argv[optind++], "%i", &fdo) != 1) {
+	    fprintf(stderr, "Not a file descriptor\n");
+	    break;
+	  }
+
+	  if (sscanf (argv[optind++], "%i", &fde) != 1) {
+	    fprintf(stderr, "Not a file descriptor\n");
+	    break;
+	  }
+	  
 	  // printf("optind is pointing to %s\n", argv[optind]);
-	  fdi = atoi(argv[optind++]);
 	  //printf("optind is pointing to %s\n", argv[optind]);
-	  fdo = atoi(argv[optind++]);
 	  //printf("optind is pointing to %s\n", argv[optind]);
-	  fde = atoi(argv[optind++]);
 	  //printf("optind is pointing to %s\n", argv[optind]);
 	  for (i = optind; i < argc; i++)
 	    {
@@ -126,8 +143,10 @@ int main(int argc, char* argv[])
 	      optind++;
 	    }
 	  args[j] = NULL;
-	  if (fdi > fd_ind || fdo > fd_ind || fde > fd_ind)
+	  if (fdi > fd_ind || fdo > fd_ind || fde > fd_ind) {
 	    fprintf(stderr, "Invalid file descriptor\n");
+	    break;
+	  }
 	  cPID = fork();
 	  //  printf("Finished fork\n");
 	  if (cPID >= 0)
@@ -135,12 +154,18 @@ int main(int argc, char* argv[])
 	      if (cPID == 0) // Child process
 		{
 		  //printf("Child Process: %s\n", args[0]);
-		  if (dup2(file_descriptors[fdi], 0) == -1)
+		  if (dup2(file_descriptors[fdi], 0) == -1) {
 		    fprintf(stderr, "Invalid file descriptor - input");
-		  if (dup2(file_descriptors[fdo], 1) == -1)
+		    break;
+		  }
+		  if (dup2(file_descriptors[fdo], 1) == -1) {
 		    fprintf(stderr, "Invalid file descriptor - output");
-		  if (dup2(file_descriptors[fde], 2) == -1)
+		    break;
+		  }
+		  if (dup2(file_descriptors[fde], 2) == -1) {
 		    fprintf(stderr, "Invalid file descriptor - error");
+		    break;
+		  }
 		  //  printf("Round 2: input: %d, output: %d, error: %d\n", fdi, fdo, fde);
 		  //  printf("Command: %s\n", args[0]);
 		  //  printf("Arguments: %s\n", args[0]);
