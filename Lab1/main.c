@@ -20,6 +20,7 @@ int check_size(int* file_descriptors, int fd_ind, int *fd_size)
   return 0;
 }
 
+
 // Main
 
 int main(int argc, char* argv[])
@@ -29,7 +30,7 @@ int main(int argc, char* argv[])
     {
       {"rdonly",   required_argument,   0, 'a'},
       {"wronly",   required_argument,   0, 'b'},
-      {"command",  no_argument,         0, 'c'},
+      {"command",  required_argument,   0, 'c'},
       {"verbose",  no_argument,         0, 'd'},
       {0,0,0,0},
     };
@@ -54,14 +55,25 @@ int main(int argc, char* argv[])
   while (iarg != -1)
     {
       j = 0;
-      printf("argv has %s\n", argv[optind]);
+      //printf("argv has %s\n", argv[optind]);
       iarg = getopt_long(argc, argv, "a:b:c:d", long_opts, &option_index);
-            printf("iarg : %d\n", iarg);
+      //printf("iarg : %d\n", iarg);
       if (iarg == -1)
 	break;
-
-      if (verbose_flag == 1)
-	printf("--%s %s\n", long_opts[iarg-'a'].name, optarg);
+      
+      if (long_opts[iarg-'a'].has_arg == required_argument)
+	optind--;
+      
+      if (verbose_flag == 1) {
+	printf("--%s", long_opts[iarg-'a'].name);
+	for (i = optind; i < argc; i++)
+	  {
+	    if (strlen(argv[i]) > 2 && (argv[i][0] == '-' && argv[i][1] == '-'))
+	      break;
+	    printf(" %s", argv[i]);
+	  }
+	printf("\n");
+      }
 
       // Doesn't work for command
       
@@ -98,19 +110,19 @@ int main(int argc, char* argv[])
 	  break;
 	  
 	case 'c':
-	  printf("optind is pointing to %s\n", argv[optind]);
+	  // printf("optind is pointing to %s\n", argv[optind]);
 	  fdi = atoi(argv[optind++]);
-	  printf("optind is pointing to %s\n", argv[optind]);
+	  //printf("optind is pointing to %s\n", argv[optind]);
 	  fdo = atoi(argv[optind++]);
-	  printf("optind is pointing to %s\n", argv[optind]);
+	  //printf("optind is pointing to %s\n", argv[optind]);
 	  fde = atoi(argv[optind++]);
-	  printf("optind is pointing to %s\n", argv[optind]);
+	  //printf("optind is pointing to %s\n", argv[optind]);
 	  for (i = optind; i < argc; i++)
 	    {
 	      if (strlen(argv[i]) > 2 && (argv[i][0] == '-' && argv[i][1] == '-'))
 		break;
 	      args[j++] = argv[i];
-	      printf("optind is pointing to %s\n", argv[optind]);
+	      //printf("optind is pointing to %s\n", argv[optind]);
 	      optind++;
 	    }
 	  args[j] = NULL;
@@ -122,7 +134,7 @@ int main(int argc, char* argv[])
 	    {
 	      if (cPID == 0) // Child process
 		{
-		  printf("Child Process: %s\n", args[0]);
+		  //printf("Child Process: %s\n", args[0]);
 		  if (dup2(file_descriptors[fdi], 0) == -1)
 		    fprintf(stderr, "Invalid file descriptor - input");
 		  if (dup2(file_descriptors[fdo], 1) == -1)
@@ -155,6 +167,6 @@ int main(int argc, char* argv[])
 	 // No default case required, caught by the ? above switch
 	}
     }
-  printf("Main returned\n");
+  //printf("Main returned\n");
   return 0;
 }
