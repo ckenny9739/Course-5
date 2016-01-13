@@ -8,9 +8,9 @@
 #include <sys/wait.h>
 #include <errno.h>
 
-int check_size(int* arr, int arr_ind, int *arr_size)
+int check_size(void* arr, int arr_ind, unsigned int *arr_size)
 {
-  if (arr_ind >= (*arr_size))
+  if ((unsigned) arr_ind >= (*arr_size))
     {
       (*arr_size) = (*arr_size) * 2;
       arr = (int*) realloc(arr, (*arr_size));
@@ -39,13 +39,13 @@ int main(int argc, char* argv[])
   int iarg = 0;
   int verbose_flag = 0;
   int fd_ind = 0;
-  int fd_size = 128;
+  unsigned int fd_size = 128;
   int* file_descriptors = (int*) malloc(fd_size*sizeof(int));
   int fdi, fdo, fde;
   int ret;
   pid_t cPID;
   int arg_ind = 0;
-  int arg_size = 512;
+  unsigned int arg_size = 512;
   char **args = (char**) malloc(arg_size*sizeof(char));
   int i;
   int j = 0;
@@ -130,7 +130,7 @@ int main(int argc, char* argv[])
 	    break;
 	  }
 	  
-	  // printf("optind is pointing to %s\n", argv[optind]);
+	  //printf("optind is pointing to %s\n", argv[optind]);
 	  //printf("optind is pointing to %s\n", argv[optind]);
 	  //printf("optind is pointing to %s\n", argv[optind]);
 	  //printf("optind is pointing to %s\n", argv[optind]);
@@ -138,6 +138,8 @@ int main(int argc, char* argv[])
 	    {
 	      if (strlen(argv[i]) > 2 && (argv[i][0] == '-' && argv[i][1] == '-'))
 		break;
+	      while (strlen(argv[i]) >= arg_size)
+		check_size(args, arg_ind, &arg_size);
 	      args[j++] = argv[i];
 	      //printf("optind is pointing to %s\n", argv[optind]);
 	      optind++;

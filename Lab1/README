@@ -2,15 +2,8 @@ CS 111 - Lab 1a
 
 Partners: Connor Kenny (304437322) and Jusin Liu (504487373)
 
-TODO:
-Finish command option
-Check all options work correctly
-Fix check dist
-Redo test cases so that it works
-Error checking throughout project
-Read spec through once finished to fix any bugs
-
 Implementation:
+
 We used an array of option structs to hold each of our 4 viable options. Then using
 a while loop we could go through each of the arguments passed to simpsh.
 This lead into a switch statement for each of the options. This allowed us to
@@ -20,11 +13,15 @@ print out the option and arguments each time through the while loop after the fl
 is set. Finally, --command's implementation is more complicated. It involves creating
 child processes for each command via a fork() call. Then we used dup2() to set the
 correct file descriptors (3 calls - 1 for input, 1 for output, 1 for error). Finally,
-we used execvp() to actually issue the command.
+we used execvp() to actually issue the command. This basically rids us of the child
+process (because it has been used up for execvp()) and leaves the main process
+to go through the rest of the options.
+
+This implementation should work on all test cases, inlcuding multiple --verbose
+options and multiple --command options. 
 
 Limitations:
---command doesn't work
-There is little error checking
+No known limitations for Lab 1A
 
 Extra Features:
-No Extra Features as of now
+No Extra Features for Lab 1A
