@@ -6,6 +6,7 @@
 #include <getopt.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <errno.h>
 
 int check_size(int* file_descriptors, int fd_ind, int fd_size)
 {
@@ -52,7 +53,7 @@ int main(int argc, char* argv[])
   while (iarg != -1)
     {
       iarg = getopt_long(argc, argv, "a:b:c:d", long_opts, &option_index);
-
+      printf("iarg : %d\n", iarg);
       if (iarg == -1)
 	break;
 
@@ -99,6 +100,7 @@ int main(int argc, char* argv[])
 	  fdi = atoi(argv[optind++]);
 	  fdo = atoi(argv[optind++]);
 	  fde = atoi(argv[optind++]);
+	  printf("Check 1\n");
 	  for (i = optind; i < argc; i++)
 	    {
 	      if (argv[i][0] == '-' && argv[i][1] == '-')
@@ -131,9 +133,11 @@ int main(int argc, char* argv[])
 		  printf("Arguments: %s\n", args[1]);
 		  printf("Arguments: %s\n", args[2]);
 		  execvp(args[0], args); // Put in the command name in first, args (including args[0] as name) in second
+		  // Error check for error in execvp
+		  printf("execvp returned....\n");
+		  exit(1); // Something else here????
 		}
-	      //		  waitpid(-1, &ret, 0);
-	    }
+	   }
 	  else
 	    {
 	      fprintf(stderr, "Could not create child process");
