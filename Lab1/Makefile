@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -g -Wall -Wextra -Wno-unused -Werror
 LAB = 1
-DISTDIR = lab1-$(USER)
+DISTDIR = lab1-connorkenny
 
 all: simpsh
 
@@ -34,6 +34,6 @@ $(TEST_BASES): simpsh
 	./test.sh
 
 clean:
-	rm -fr *.o *~ *.bak *.tar.gz core *.core *.tmp tmp simpsh $(DISTDIR)
+	rm -fr *.o *~ *.bak *.tar.gz core *.core *.tmp *.txt tmp simpsh $(DISTDIR)
 
 .PHONY: all dist check $(TEST_BASES) clean
