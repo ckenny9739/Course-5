@@ -28,13 +28,25 @@ int main(int argc, char* argv[])
   
   static const struct option long_opts[] =
     {
-      {"rdonly",   required_argument,   0, 'a'},
-      {"wronly",   required_argument,   0, 'b'},
-      {"command",  required_argument,   0, 'c'},
-      {"verbose",  no_argument,         0, 'd'},
+      {"rdonly",    required_argument,   0, 'a'},
+      {"wronly",    required_argument,   0, 'b'},
+      {"command",   required_argument,   0, 'c'},
+      {"verbose",   no_argument,         0, 'd'},
+      {"append",    no_argument,         0, 'e'},
+      {"cloexec",   no_argument,         0, 'f'},
+      {"creat",     no_argument,         0, 'g'},
+      {"directory", no_argument,         0, 'h'},
+      {"dsync",     no_argument,         0, 'i'},
+      {"excl",      no_argument,         0, 'j'},
+      {"nofollow",  no_argument,         0, 'k'},
+      {"nonblock",  no_argument,         0, 'l'},
+      {"rsync",     no_argument,         0, 'm'},
+      {"sync",      no_argument,         0, 'n'},
+      {"trunc",     no_argument,         0, 'o'},
       {0,0,0,0},
     };
   
+  int bit_mask = 0;
   int option_index = 0;
   int iarg = 0;
   int verbose_flag = 0;
@@ -54,7 +66,7 @@ int main(int argc, char* argv[])
     {
       j = 0;
       //printf("argv has %s\n", argv[optind]);
-      iarg = getopt_long(argc, argv, "a:b:c:d", long_opts, &option_index);
+      iarg = getopt_long(argc, argv, "a:b:c:defghijklmno", long_opts, &option_index);
       //printf("iarg : %d\n", iarg);
       if (iarg == -1)
 	break;
@@ -84,9 +96,10 @@ int main(int argc, char* argv[])
 	    fprintf(stderr, "Memory allocation error for file descriptors\n");
 	    break;
 	  }
-	  ret = open(optarg, O_RDONLY);
+	  ret = open(optarg, O_RDONLY | bit_mask, S_IRWXU);
+	  bit_mask = 0;
 	  if (ret < 0) {
-	    fprintf(stderr, "File error\n");
+	    fprintf(stderr, "Open failed - Read(%d)\n", ret);
 	    break;
 	  }
 	  file_descriptors[fd_ind++] = ret;
@@ -100,9 +113,10 @@ int main(int argc, char* argv[])
 	    fprintf(stderr, "Memory allocation error for file descriptors\n");
 	    break;
 	  }
-	  ret = open(optarg, O_WRONLY);
+	  ret = open(optarg, O_WRONLY | bit_mask, S_IRWXU);
+	  bit_mask = 0;
 	  if (ret < 0) {
-	    fprintf(stderr, "File error\n");
+	    fprintf(stderr, "Open failed - Write (%d)\n", ret);
 	    break;
 	  }
 	  file_descriptors[fd_ind++] = ret;
@@ -168,6 +182,10 @@ int main(int argc, char* argv[])
 		    fprintf(stderr, "Invalid file descriptor - error");
 		    break;
 		  }
+		  // Close File Descriptors if not equal to the correct value
+		  
+
+		  
 		  //  printf("Round 2: input: %d, output: %d, error: %d\n", fdi, fdo, fde);
 		  //  printf("Command: %s\n", args[0]);
 		  //  printf("Arguments: %s\n", args[0]);
@@ -190,6 +208,39 @@ int main(int argc, char* argv[])
 	case 'd':
 	  verbose_flag = 1;
 	  //	  printf("Finished verbose\n");
+	  break;
+	case 'e':
+	  bit_mask |= O_APPEND;
+	  break;
+	case 'f':
+	  bit_mask |= O_CLOEXEC;
+	  break;
+	case 'g':
+	  bit_mask |= O_CREAT;
+	  break;
+	case 'h':
+	  bit_mask |= O_DIRECTORY;
+	  break;
+	case 'i':
+	  bit_mask |= O_DSYNC;
+	  break;
+	case 'j':
+	  bit_mask |= O_EXCL;
+	  break;
+	case 'k':
+	  bit_mask |= O_NOFOLLOW;
+	  break;
+	case 'l':
+	  bit_mask |= O_NONBLOCK;
+	  break;
+	case 'm':
+	  bit_mask |= O_RSYNC;
+	  break;
+	case 'n':
+	  bit_mask |= O_SYNC;
+	  break;
+	case 'o':
+	  bit_mask |= O_TRUNC;
 	  break;
 	 // No default case required, caught by the ? above switch
 	}
