@@ -1,3 +1,12 @@
+/*
+  To Do List:
+  - Check the mode for open
+  - Try to reproduce the file error
+  - Check stdin, stdout, stderr
+ */
+
+
+
 // INCLUDES
 #include <fcntl.h>
 #include <stdio.h>
@@ -43,6 +52,8 @@ int main(int argc, char* argv[])
       {"rsync",     no_argument,         0, 'm'},
       {"sync",      no_argument,         0, 'n'},
       {"trunc",     no_argument,         0, 'o'},
+      {"rdwr",      required_argument,   0, 'p'},
+      {"pipe",      no_argument,         0, 'q'},
       {0,0,0,0},
     };
   
@@ -66,7 +77,7 @@ int main(int argc, char* argv[])
     {
       j = 0;
       //printf("argv has %s\n", argv[optind]);
-      iarg = getopt_long(argc, argv, "a:b:c:defghijklmno", long_opts, &option_index);
+      iarg = getopt_long(argc, argv, "a:b:c:defghijklmnop:q", long_opts, &option_index);
       //printf("iarg : %d\n", iarg);
       if (iarg == -1)
 	break;
@@ -241,6 +252,33 @@ int main(int argc, char* argv[])
 	  break;
 	case 'o':
 	  bit_mask |= O_TRUNC;
+	  break;
+	case 'p':
+	  ret = check_size(file_descriptors, fd_ind, (&fd_size));
+	  if (ret == -1) {
+	    fprintf(stderr, "Memory allocation error for file descriptors\n");
+	    break;
+	  }
+	  ret = open(optarg, O_RDWR | bit_mask, S_IRWXU);
+	  bit_mask = 0;
+	  if (ret < 0) {
+	    fprintf(stderr, "Open failed - Read/Write(%d)\n", ret);
+	    break;
+	  }
+	  file_descriptors[fd_ind++] = ret;
+	  //  printf("file_descriptors[fd_ind++] (for Read/Write) : %d\n", ret);
+	  //  printf("Finished Read/Write\n");
+	  break;
+	case 'q':
+	  ret = check_size(file_descriptors, fd_ind, (&fd_size));
+	  if (ret == -1) {
+	    fprintf(stderr, "Memory allocation error for file descriptors\n");
+	    break;
+	  }
+	  // FILL IN REST OF PIPE HERE (Check out the size 2 array.. Do we insert like {file_descriptors[ind++] x2}
+	  // Do we need to call check_size again because multiple fd?
+	  bit_mask = 0;
+	  
 	  break;
 	 // No default case required, caught by the ? above switch
 	}
