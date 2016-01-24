@@ -23,3 +23,5 @@ d
 file a
 file z
 h
+sort: fflush failed: standard output: Bad file descriptor
+sort: write error: Bad file descriptor
