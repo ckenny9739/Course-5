@@ -20,6 +20,14 @@
 #include <signal.h>
 
 
+void check_args(char * argv[], int argc, int optind) {
+  if (optind + 1 == argc)
+    return;
+  if (strlen(argv[optind+1]) < 2 || argv[optind+1][0] != '-' || argv[optind+1][1] != '-')
+    fprintf(stderr, "Invalid options - Too many arguments for %s\n", argv[optind-1]);
+  return;
+}
+
 int check_size(void* arr, int arr_ind, unsigned int *arr_size)
 {
   if ((unsigned) arr_ind >= (*arr_size))
@@ -123,7 +131,10 @@ int main(int argc, char* argv[])
 
       if (iarg == '?')
 	continue;
-      
+
+      if (long_opts[iarg-'a'].has_arg == no_argument && (strlen(argv[optind]) < 2 || argv[optind][0] != '-' || argv[optind][1] != '-')) {
+	  fprintf(stderr, "Invalid Argument - Option has no argument\n");
+      }
       switch (iarg)
 	{
 	case 'a':
@@ -139,6 +150,7 @@ int main(int argc, char* argv[])
 	    break;
 	  }
 	  file_descriptors[fd_ind++] = ret;
+	  check_args(argv, argc, optind);
 	  //  printf("file_descriptors[fd_ind++] (for read) : %d\n", ret);
 	  //  printf("Finished read\n");
 	  break;
@@ -156,6 +168,7 @@ int main(int argc, char* argv[])
 	    break;
 	  }
 	  file_descriptors[fd_ind++] = ret;
+	  check_args(argv, argc, optind);
 	  //  printf("file_descriptors[fd_ind++] (for write) : %d\n", ret);
 	  //  printf("Finished write\n");
 	  break;
@@ -165,17 +178,17 @@ int main(int argc, char* argv[])
 	    fprintf(stderr, "Not enough arguments\n");
 	    break;
 	  }
-	  if (sscanf (argv[optind++], "%i", &fdi) != 1) {
+	  if (sscanf (argv[optind++], "%i", &fdi) < 1) {
 	    fprintf(stderr, "Not a file descriptor\n");
 	    break;
 	  }
 
-	  if (sscanf (argv[optind++], "%i", &fdo) != 1) {
+	  if (sscanf (argv[optind++], "%i", &fdo) < 1) {
 	    fprintf(stderr, "Not a file descriptor\n");
 	    break;
 	  }
 
-	  if (sscanf (argv[optind++], "%i", &fde) != 1) {
+	  if (sscanf (argv[optind++], "%i", &fde) < 1) {
 	    fprintf(stderr, "Not a file descriptor\n");
 	    break;
 	  }
@@ -306,6 +319,7 @@ int main(int argc, char* argv[])
 	    break;
 	  }
 	  file_descriptors[fd_ind++] = ret;
+	  check_args(argv, argc, optind);
 	  //  printf("file_descriptors[fd_ind++] (for Read/Write) : %d\n", ret);
 	  //  printf("Finished Read/Write\n");
 	  break;
@@ -328,36 +342,40 @@ int main(int argc, char* argv[])
 	  raise(SIGSEGV);
 	  break;
 	case 's':
-	  if(sscanf(optarg, "%i", &ret) == -1 || ret >= fd_ind) {
+	  if(sscanf(optarg, "%i", &ret) < 1 || ret >= fd_ind) {
 	    fprintf(stderr, "Error - Not a file descriptor\n");
 	    break;
 	  }
 	  if (close(file_descriptors[ret]) < 0)
 	    fprintf(stderr, "Error closing\n");
+	  check_args(argv, argc, optind);
 	  break;
 	case 't':
-	  if(sscanf(optarg, "%i", &ret) == -1) {
+	  if(sscanf(optarg, "%i", &ret) < 1) {
 	    fprintf(stderr, "Error - Not a signal number\n");
 	    break;
 	  }
 	  if (signal(ret, simpsh_handler) == SIG_ERR)
 	    fprintf(stderr, "Error catching\n");
+	  check_args(argv, argc, optind);
 	  break;
 	case 'u':
-	  if(sscanf(optarg, "%i", &ret) == -1) {
+	  if(sscanf(optarg, "%i", &ret) < 1) {
 	    fprintf(stderr, "Error - Not a signal number\n");
 	    break;
 	  }
 	  if (signal(ret, SIG_IGN) == SIG_ERR)
 	    fprintf(stderr, "Error ignoring\n");
+	  check_args(argv, argc, optind);
 	  break;
 	case 'v':
-	  if(sscanf(optarg, "%i", &ret) == -1) {
+	  if(sscanf(optarg, "%i", &ret) < 1) {
 	    fprintf(stderr, "Error - Not a signal number\n");
 	    break;
 	  }
 	  if (signal(ret, SIG_DFL) == SIG_ERR)
 	    fprintf(stderr, "Error default\n");
+	  check_args(argv, argc, optind);
 	  break;
 	case 'w':
 	  pause();
@@ -372,13 +390,13 @@ int main(int argc, char* argv[])
     }
   //printf("Main returned\n");
   if(waitFlag) {
-    i = 0;
-    j = 0;
-    for(i; i < pCount; i++) {
+    for(i=0; i < pCount; i++) {
       ret = wait(&stat);
-      for(j; j < pCount; j++)
-	if (procArr[j].id == ret)
+      for(j=0; j < pCount; j++)
+	if (procArr[j].id == ret) {
 	  printf("%d %s\n", WEXITSTATUS(stat), procArr[j].argArr);
+	  break;
+	}
     }
   }
   free(file_descriptors);
