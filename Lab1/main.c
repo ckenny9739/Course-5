@@ -4,7 +4,6 @@
   - test cases
   - Dynamic Allocation instead of set values
   - When simpsh exits other than in response to a signal, it should exit with status equal to the maximum of all the exit statuses of all the subcommands that it ran and successfully waited for. However, if there are no such subcommands, or if the maximum is zero, simpsh should exit with status 0 if all options succeeded, and with status 1 one of them failed. For example, if a file could not be opened, simpsh must exit with nonzero status.
-  - Error Checking - Too many arguments is ok....
  */
 
 // INCLUDES
@@ -80,6 +79,7 @@ int main(int argc, char* argv[])
       {0,0,0,0},
     };
 
+  int return_total = 0;
   int bit_mask = 0;
   int option_index = 0;
   int iarg = 0;
@@ -250,7 +250,7 @@ int main(int argc, char* argv[])
 		  // Put in the command name in first, args (including args[0] as name) in second
 		  // Error check for error in execvp
 		  // fprintf(stderr, "execvp error\n");
-		  exit(ret);
+		  exit(1);
 		}
 	      else {
 		procArr[pCount].id = cPID;
@@ -402,5 +402,5 @@ int main(int argc, char* argv[])
   free(file_descriptors);
   free(args);
   //  printf("Main returned\n");
-  return 0;
+  return return_total;
 }
