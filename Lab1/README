@@ -1,4 +1,36 @@
-CS 111 - Lab 1a
+CS 111 - Lab 1B
+
+Partners: Connor Kenny (304437322) and Jusin Liu (504487373)
+
+Implementation:
+
+We used our implementation for lab 1A below as a base and expanded from there.
+
+oflag options: We simply made a bit_mask and OR'd them as the options were called. Then we reset it back to 0 upon open.
+rdwr: Same implementation as rdonly and wronly except it is rdwr in the open call.
+pipe: We checked to make sure there was space for 2 file descriptors and then called pipe. Then we added those new
+      file descriptors to our array. The trickier part is learning how to use the pipes correctly.
+wait: We set a wait flag if this option was called. Then at the end of the parent process, we wait for all the child processes
+      with the wait(&status) call - could have used waitpid(-1 ...) but it is easier. We want the user to be in charge of close
+      all the file descriptors.
+      close: We just used the close() call on the file descriptor in our array
+      abort: Use raise() to force a segmentation fault.
+      catch, ignore, default: We created a very simple signal handler for catch and just used the basic options for ignore
+      and default, respectively.
+      pause: We called pause.
+
+This implementation should work on all test cases outlined by the spec and TA's. We have chosen to let --close be the method for
+avoiding the infinite waiting problem.
+
+Limitations:
+No known limitations for Lab 1B
+
+Extra Features:
+No Extra Features for Lab 1B
+
+---------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------
+CS 111 - Lab 1A
 
 Partners: Connor Kenny (304437322) and Jusin Liu (504487373)
 
@@ -25,3 +57,4 @@ No known limitations for Lab 1A
 
 Extra Features:
 No Extra Features for Lab 1A
+

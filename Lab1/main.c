@@ -1,13 +1,14 @@
 /*
   To Do List:
-  - Check the mode for open
-  - Check stdin, stdout, stderr
   - pipe, wait
+  - test cases
+  - Dynamic Allocation instead of set values
+  - When simpsh exits other than in response to a signal, it should exit with status equal to the maximum of all the exit statuses of all the subcommands that it ran and successfully waited for. However, if there are no such subcommands, or if the maximum is zero, simpsh should exit with status 0 if all options succeeded, and with status 1 one of them failed. For example, if a file could not be opened, simpsh must exit with nonzero status.
+  - Error Checking - Too many arguments is ok....
  */
 
-
-
 // INCLUDES
+#define _GNU_SOURCE
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,12 +38,6 @@ void simpsh_handler(int signum)
   exit(signum);
 }
 
-struct proc {
-  pid_t id;
-  char argArr[512];
-};
-struct proc procArr[32];
-
 // Main
 
 int main(int argc, char* argv[])
@@ -51,7 +46,7 @@ int main(int argc, char* argv[])
   static const struct option long_opts[] =
     {
       {"rdonly",    required_argument,   0, 'a'},
-      {"wronly",   required_argument,   0, 'b'},
+      {"wronly",    required_argument,   0, 'b'},
       {"command",   required_argument,   0, 'c'},
       {"verbose",   no_argument,         0, 'd'},
       {"append",    no_argument,         0, 'e'},
@@ -82,20 +77,25 @@ int main(int argc, char* argv[])
   int iarg = 0;
   int verbose_flag = 0;
   int fd_ind = 0;
-  unsigned int fd_size = 128;
-  int* file_descriptors = (int*) malloc(fd_size*sizeof(int));
-  file_descriptors[0] = file_descriptors[1] = file_descriptors[2] = -1;
-  // Set as -1 to notify if using stdin, stdout, stderr
-  int fdi, fdo, fde;
-  int ret;
   int pCount = 0;
   int waitFlag = 0;
-  pid_t cPID;
   int arg_ind = 0;
+  int i = 0;
+  int j = 0;
+  int fdi, fdo, fde;
+  int ret, stat;
+  pid_t cPID;
+  int pipe_fd[2];
+  unsigned int fd_size = 128;
+  int* file_descriptors = (int*) malloc(fd_size*sizeof(int));
   unsigned int arg_size = 512;
   char **args = (char**) malloc(arg_size*sizeof(char));
-  int i;
-  int j = 0;
+
+  struct proc {
+    pid_t id;
+    char argArr[512];
+  };
+  struct proc procArr[32];
   
   while (iarg != -1)
     {
@@ -103,6 +103,7 @@ int main(int argc, char* argv[])
       //printf("argv has %s\n", argv[optind]);
       iarg = getopt_long(argc, argv, "a:b:c:defghijklmnop:qrstuvwx", long_opts, &option_index);
       //printf("iarg : %d\n", iarg);
+      
       if (iarg == -1)
 	break;
       
@@ -131,7 +132,7 @@ int main(int argc, char* argv[])
 	    fprintf(stderr, "Memory allocation error for file descriptors\n");
 	    break;
 	  }
-	  ret = open(optarg, O_RDONLY | bit_mask, S_IRWXU);
+	  ret = open(optarg, O_RDONLY | bit_mask, 0644);
 	  bit_mask = 0;
 	  if (ret < 0) {
 	    fprintf(stderr, "Open failed - Read(%d)\n", ret);
@@ -148,7 +149,7 @@ int main(int argc, char* argv[])
 	    fprintf(stderr, "Memory allocation error for file descriptors\n");
 	    break;
 	  }
-	  ret = open(optarg, O_WRONLY | bit_mask, S_IRWXU);
+	  ret = open(optarg, O_WRONLY | bit_mask, 0644);
 	  bit_mask = 0;
 	  if (ret < 0) {
 	    fprintf(stderr, "Open failed - Write (%d)\n", ret);
@@ -194,7 +195,7 @@ int main(int argc, char* argv[])
 	      optind++;
 	    }
 	  args[j] = NULL;
-	  if (fdi < 0 || (fdi > fd_ind && fdi > 2) || fdo < 0 || (fdo > fd_ind && fdo > 2) || fde < 0 || (fde > fd_ind && fde > 2)) {
+	  if (fdi < 0 || fdi >= fd_ind || fdo < 0 || fdo >= fd_ind || fde < 0 || fde >= fd_ind) {
 	    fprintf(stderr, "Invalid file descriptor\n");
 	    break;
 	  }
@@ -205,41 +206,38 @@ int main(int argc, char* argv[])
 	      if (cPID == 0) // Child process
 		{
 		  //printf("Child Process: %s\n", args[0]);
-		  if (fdi >=3 || (fdi < 3 && file_descriptors[fdi] != -1))
-		    if (dup2(file_descriptors[fdi], 0) == -1) {
-		      fprintf(stderr, "Dup2 error - input");
-		      break;
-		    }
-		  if (fdo >= 3 || (fdo < 3 && file_descriptors[fdo] != -1))
-		    if (dup2(file_descriptors[fdo], 1) == -1) {
-		      fprintf(stderr, "Dup2 error - output");
-		      break;
-		    }
-		  if (fde >= 3 || (fde < 3 && file_descriptors[fde] != -1))
-		    if (dup2(file_descriptors[fde], 2) == -1) {
-		      fprintf(stderr, "Dup2 error - error");
-		      break;
-		    }
+		  if (dup2(file_descriptors[fdi], 0) == -1) {
+		    fprintf(stderr, "Dup2 error - input\n");
+		    break;
+		  }
+		  if (dup2(file_descriptors[fdo], 1) == -1) {
+		    fprintf(stderr, "Dup2 error - output\n");
+		    break;
+		  }
+		  if (dup2(file_descriptors[fde], 2) == -1) {
+		    fprintf(stderr, "Dup2 error - error\n");
+		    break;
+		  }
 		  // Close File Descriptors if not equal to the correct value
 		  for (i = 0; i < fd_ind; i++) {
 		    if (i != fdi && i != fdo && i != fde)
 		      close(file_descriptors[i]);
 		  }
-
 		  
-		  //  printf("Round 2: input: %d, output: %d, error: %d\n", fdi, fdo, fde);
-		  //printf("Command: %s\n", args[0]);
-		  printf("Arguments: %s\n", args[0]);
-		  printf("Arguments: %s\n", args[1]);
-		  printf("Arguments: %s\n", args[2]);
-		  printf("Arguments: %s\n", args[3]);
-		  printf("Execvp running\n");
-		  execvp(args[0], args);
-		  printf("Execvp returned\n");
+		  // printf("Round 2: input: %d, output: %d, error: %d\n", fdi, fdo, fde);
+		  // printf("Command: %s\n", args[0]);
+		  // printf("Arguments: %s\n", args[0]);
+		  // printf("Arguments: %s\n", args[1]);
+		  // printf("Arguments: %s\n", args[2]);
+		  // printf("Arguments: %s\n", args[3]);
+		  // printf("Execvp running\n");
+
+		  ret = execvp(args[0], args);
+		  fprintf(stderr, "Execvp returned - FAILURE\n");
 		  // Put in the command name in first, args (including args[0] as name) in second
 		  // Error check for error in execvp
-		  fprintf(stderr, "execvp error\n");
-		  exit(1); // Something else here????
+		  // fprintf(stderr, "execvp error\n");
+		  exit(ret);
 		}
 	      else {
 		procArr[pCount].id = cPID;
@@ -253,14 +251,14 @@ int main(int argc, char* argv[])
 	   }
 	  else
 	    {
-	      fprintf(stderr, "Could not create child process");
+	      fprintf(stderr, "Could not create child process\n");
 	      // fork failed
 	    }
-	  //	  printf("Thread - %d Finished command\n", cPID);
+	  // printf("Thread - %d Finished command\n", cPID);
 	  break;
 	case 'd':
 	  verbose_flag = 1;
-	  //	  printf("Finished verbose\n");
+	  // printf("Finished verbose\n");
 	  break;
 	case 'e':
 	  bit_mask |= O_APPEND;
@@ -301,7 +299,7 @@ int main(int argc, char* argv[])
 	    fprintf(stderr, "Memory allocation error for file descriptors\n");
 	    break;
 	  }
-	  ret = open(optarg, O_RDWR | bit_mask, S_IRWXU);
+	  ret = open(optarg, O_RDWR | bit_mask, 0644);
 	  bit_mask = 0;
 	  if (ret < 0) {
 	    fprintf(stderr, "Open failed - Read/Write(%d)\n", ret);
@@ -312,12 +310,12 @@ int main(int argc, char* argv[])
 	  //  printf("Finished Read/Write\n");
 	  break;
 	case 'q':
+	  // Use + 1 to check for 2 open file descriptors because pipe uses 2
 	  ret = check_size(file_descriptors, fd_ind + 1, (&fd_size));
 	  if (ret == -1) {
 	    fprintf(stderr, "Memory allocation error for file descriptors\n");
 	    break;
 	  }
-	  int pipe_fd[2];
 	  ret = pipe(pipe_fd);
 	  if (ret < 0) {
 	    fprintf(stderr, "Pipe failed - %d\n", ret);
@@ -330,54 +328,61 @@ int main(int argc, char* argv[])
 	  raise(SIGSEGV);
 	  break;
 	case 's':
-	  if(sscanf(optarg, "%i", &ret) == -1) {
-	    fprintf(stderr, "Error closing\n");
+	  if(sscanf(optarg, "%i", &ret) == -1 || ret >= fd_ind) {
+	    fprintf(stderr, "Error - Not a file descriptor\n");
 	    break;
 	  }
-	  close(file_descriptors[ret]);
+	  if (close(file_descriptors[ret]) < 0)
+	    fprintf(stderr, "Error closing\n");
 	  break;
 	case 't':
 	  if(sscanf(optarg, "%i", &ret) == -1) {
-	    fprintf(stderr, "Error catching\n");
+	    fprintf(stderr, "Error - Not a signal number\n");
 	    break;
 	  }
-	  signal(ret, simpsh_handler);
+	  if (signal(ret, simpsh_handler) == SIG_ERR)
+	    fprintf(stderr, "Error catching\n");
 	  break;
 	case 'u':
 	  if(sscanf(optarg, "%i", &ret) == -1) {
-	    fprintf(stderr, "Error catching\n");
+	    fprintf(stderr, "Error - Not a signal number\n");
 	    break;
 	  }
-	  signal(ret, SIG_IGN);
+	  if (signal(ret, SIG_IGN) == SIG_ERR)
+	    fprintf(stderr, "Error ignoring\n");
 	  break;
 	case 'v':
 	  if(sscanf(optarg, "%i", &ret) == -1) {
-	    fprintf(stderr, "Error catching\n");
+	    fprintf(stderr, "Error - Not a signal number\n");
 	    break;
 	  }
-	  signal(ret, SIG_DFL);
+	  if (signal(ret, SIG_DFL) == SIG_ERR)
+	    fprintf(stderr, "Error default\n");
 	  break;
 	case 'w':
 	  pause();
 	  break;
-	 // No default case required, caught by the ? above switch
 	case 'x':
 	  waitFlag = 1;
+	  break;
+	default:
+	  fprintf(stderr, "Error - How did you get here?\n");
 	  break;
 	}
     }
   //printf("Main returned\n");
   if(waitFlag) {
-    int process = 0;
-    int stat;
-    int k = 0;
-    for(process; process < pCount; process++) {
+    i = 0;
+    j = 0;
+    for(i; i < pCount; i++) {
       ret = wait(&stat);
-      for(k; k < pCount; k++)
-	if (procArr[k].id == ret)
-	  printf("%d %s\n", WEXITSTATUS(stat), procArr[k].argArr);
+      for(j; j < pCount; j++)
+	if (procArr[j].id == ret)
+	  printf("%d %s\n", WEXITSTATUS(stat), procArr[j].argArr);
     }
   }
+  free(file_descriptors);
+  free(args);
   //  printf("Main returned\n");
   return 0;
 }
