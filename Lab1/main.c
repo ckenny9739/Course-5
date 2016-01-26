@@ -1,9 +1,3 @@
-/*
-  To Do List:
-  - pipe, wait
-  - Dynamic Allocation instead of set values
- */
-
 // INCLUDES
 #define _GNU_SOURCE
 #include <fcntl.h>
@@ -96,7 +90,7 @@ int main(int argc, char* argv[])
   int* file_descriptors = (int*) malloc(fd_size*sizeof(int));
   unsigned int arg_size = 512;
   char **args = (char**) malloc(arg_size*sizeof(char*));
-
+  
   struct proc {
     pid_t id;
     char argArr[512];
