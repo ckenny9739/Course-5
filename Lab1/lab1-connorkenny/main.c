@@ -1,6 +1,7 @@
 /*
   To Do List:
   - pipe, wait
+  - test cases
   - Dynamic Allocation instead of set values
  */
 
