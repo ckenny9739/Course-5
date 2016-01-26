@@ -41,7 +41,10 @@ void simpsh_handler(int signum)
 
 int main(int argc, char* argv[])
 {
-  
+  //  int l = 0;
+  //  for(l = 0; l < argc; l++) {
+  //  printf("%s %d \n", argv[l], l);
+  //  }
   static const struct option long_opts[] =
     {
       {"rdonly",    required_argument,   0, 'a'},
@@ -90,12 +93,15 @@ int main(int argc, char* argv[])
   int* file_descriptors = (int*) malloc(fd_size*sizeof(int));
   unsigned int arg_size = 512;
   char **args = (char**) malloc(arg_size*sizeof(char*));
+  char* argvInd;
   
   struct proc {
     pid_t id;
-    char argArr[512];
+    char* start;
+    char* end;
   };
-  struct proc procArr[32];
+  unsigned int procSize = 32;
+  struct proc *procArr = (struct proc*)malloc(procSize*sizeof(struct proc));
   
   while (iarg != -1)
     {
@@ -175,6 +181,7 @@ int main(int argc, char* argv[])
 	    return_value = 1;
 	    break;
 	  }
+	  
 	  if (sscanf (argv[optind++], "%i", &fdi) < 1) {
 	    return_value = 1;
 	    fprintf(stderr, "Not a file descriptor\n");
@@ -197,6 +204,8 @@ int main(int argc, char* argv[])
 	  //printf("optind is pointing to %s\n", argv[optind]);
 	  //printf("optind is pointing to %s\n", argv[optind]);
 	  //printf("optind is pointing to %s\n", argv[optind]);
+	  argvInd = argv[optind];
+	  //	  printf("Beginning: %s %d\n", argv[argvInd], argvInd);
 	  for (i = optind; i < argc; i++)
 	    {
 	      if (strlen(argv[i]) > 2 && (argv[i][0] == '-' && argv[i][1] == '-'))
@@ -257,12 +266,11 @@ int main(int argc, char* argv[])
 		  exit(1); // Exit because 1 failed
 		}
 	      else {
+		check_size(procArr, pCount, &procSize);
 		procArr[pCount].id = cPID;
-		strcat(procArr[pCount].argArr, args[0]);
-		for (i = 1; i < j; i++) {
-		  strcat(procArr[pCount].argArr, " ");
-		  strcat(procArr[pCount].argArr, args[i]);
-		}
+		procArr[pCount].start = argvInd;
+		procArr[pCount].end = argv[optind];
+		//printf("argv[start] = %s, argv[end] = %s\n", argv[argvInd], argv[optind]);
 		pCount++;
 	      }
 	   }
@@ -272,6 +280,8 @@ int main(int argc, char* argv[])
 	      // fork failed
 	    }
 	  // printf("Thread - %d Finished command\n", cPID);
+	  //	  printf("End: %s %d\n", argv[argvInd], argvInd);
+	  //printf("End: %s %d\n", argv[optind], optind);
 	  break;
 	case 'd':
 	  verbose_flag = 1;
@@ -409,25 +419,40 @@ int main(int argc, char* argv[])
     }
   //  printf("Main returned\n");
   if(waitFlag) {
+    // for(i = 0; i < argc; i++) {
+    //  printf("%s %d \n", argv[i], i);
+    // }
     for(i=0; i < fd_ind; i++)
       close(file_descriptors[i]);
+
     for(i=0; i < pCount; i++) {
       ret = wait(&stat);
       if (ret < 0) {
 	fprintf(stderr, "Process Failed\n");
 	return_value = 1;
       }
-      for(j=0; j < pCount; j++)
+      // for(j = 0; j < argc; j++) {
+      //printf("%s %d \n", argv[j], j);
+      //}
+      for(j=0; j < pCount; j++) {
 	if (procArr[j].id == ret) {
 	  if (WEXITSTATUS(stat) > 0)
 	    return_value = return_value > WEXITSTATUS(stat) ? return_value : WEXITSTATUS(stat);
-	  printf("%d %s\n", WEXITSTATUS(stat), procArr[j].argArr);
+	  //printf("pid: %d, argv[start]: %s, argv[end]: %s\n", procArr[j].id, argv[procArr[j].start], argv[procArr[j].end]);
+	  printf("%d", WEXITSTATUS(stat));
+	  //  printf("\nWait\n");
+	  char** p = NULL;
+	  for(*p = procArr[j].start; *p != procArr[j].end; *p++)
+	    printf(" %s\n", *p);
+	    //printf(" %s", argv[i]);
+	  printf("\n");
 	  break;
 	}
+      }
     }
   }
   free(file_descriptors);
   free(args);
-  //  printf("Main exited with %d\n", return_value);
+//  printf("Main exited with %d\n", return_value);
   exit(return_value);
 }
