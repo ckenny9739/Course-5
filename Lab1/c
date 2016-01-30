@@ -1,6 +1,4 @@
-file bbob
-brian
-connor
-jenny
-jo
-kenny
+tr: extra operand ‘bzah’
+Try 'tr --help' for more information.
+cat: b: input file is output file
+sed: -e expression #1, char 12: unknown option to `s'

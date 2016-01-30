@@ -41,10 +41,14 @@ void simpsh_handler(int signum)
 
 int main(int argc, char* argv[])
 {
-  //  int l = 0;
-  //  for(l = 0; l < argc; l++) {
-  //  printf("%s %d \n", argv[l], l);
-  //  }
+  char **copy = malloc(argc*sizeof(char*));
+  int l = 0;
+  for(l = 0; l < argc; l++) {
+    copy[l] = malloc((strlen(argv[l]) + 1)*sizeof(char));
+    strcpy(copy[l], argv[l]);
+  }
+  
+  
   static const struct option long_opts[] =
     {
       {"rdonly",    required_argument,   0, 'a'},
@@ -93,12 +97,12 @@ int main(int argc, char* argv[])
   int* file_descriptors = (int*) malloc(fd_size*sizeof(int));
   unsigned int arg_size = 512;
   char **args = (char**) malloc(arg_size*sizeof(char*));
-  char* argvInd;
+  int argvInd;
   
   struct proc {
     pid_t id;
-    char* start;
-    char* end;
+    int start;
+    int end;
   };
   unsigned int procSize = 32;
   struct proc *procArr = (struct proc*)malloc(procSize*sizeof(struct proc));
@@ -204,7 +208,7 @@ int main(int argc, char* argv[])
 	  //printf("optind is pointing to %s\n", argv[optind]);
 	  //printf("optind is pointing to %s\n", argv[optind]);
 	  //printf("optind is pointing to %s\n", argv[optind]);
-	  argvInd = argv[optind];
+	  argvInd = optind;
 	  //	  printf("Beginning: %s %d\n", argv[argvInd], argvInd);
 	  for (i = optind; i < argc; i++)
 	    {
@@ -269,7 +273,7 @@ int main(int argc, char* argv[])
 		check_size(procArr, pCount, &procSize);
 		procArr[pCount].id = cPID;
 		procArr[pCount].start = argvInd;
-		procArr[pCount].end = argv[optind];
+		procArr[pCount].end = optind;
 		//printf("argv[start] = %s, argv[end] = %s\n", argv[argvInd], argv[optind]);
 		pCount++;
 	      }
@@ -441,10 +445,9 @@ int main(int argc, char* argv[])
 	  //printf("pid: %d, argv[start]: %s, argv[end]: %s\n", procArr[j].id, argv[procArr[j].start], argv[procArr[j].end]);
 	  printf("%d", WEXITSTATUS(stat));
 	  //  printf("\nWait\n");
-	  char** p = NULL;
-	  for(*p = procArr[j].start; *p != procArr[j].end; *p++)
-	    printf(" %s\n", *p);
-	    //printf(" %s", argv[i]);
+	  int p;
+	  for(p = procArr[j].start; p != procArr[j].end; p++)
+	    printf(" %s", copy[p]);
 	  printf("\n");
 	  break;
 	}
