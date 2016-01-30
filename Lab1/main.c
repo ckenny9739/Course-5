@@ -9,6 +9,8 @@
 #include <sys/wait.h>
 #include <errno.h>
 #include <signal.h>
+#include <sys/time.h>
+#include <sys/resource.h>
 
 
 void check_args(char * argv[], int argc, int optind) {
@@ -138,6 +140,18 @@ int main(int argc, char* argv[])
 	  (strlen(argv[optind]) < 2 || argv[optind][0] != '-' || argv[optind][1] != '-')) {
 	fprintf(stderr, "Invalid Argument - Option has no argument\n");
       }
+
+      int who = RUSAGE_SELF;
+      struct rusage usage;
+      ret = getrusage(who, &usage);
+      printf("ret: %d\n", ret);
+      printf("ru_utime.tv_sec: %ld, ru_utime.tv_usec: %ld\n", (long int) usage.ru_utime.tv_sec, (long int) usage.ru_utime.tv_usec);
+      printf("ru_stime.tv_sec: %ld, ru_stime.tv_usec: %ld\n", (long int) usage.ru_stime.tv_sec, (long int) usage.ru_stime.tv_usec);
+
+      for (i = 0; i < 1000000; i++)
+	{
+	  int x = 2;
+	}
 
       switch (iarg)
 	{
@@ -420,6 +434,10 @@ int main(int argc, char* argv[])
 	  return_value = 1;
 	  break;
 	}
+      ret = getrusage(who, &usage);
+      printf("ret: %d\n", ret);
+      printf("ru_utime.tv_sec: %ld, ru_utime.tv_usec: %ld\n", (long int) usage.ru_utime.tv_sec, (long int) usage.ru_utime.tv_usec);
+      printf("ru_stime.tv_sec: %ld, ru_stime.tv_usec: %ld\n", (long int) usage.ru_stime.tv_sec, (long int) usage.ru_stime.tv_usec);
     }
   //  printf("Main returned\n");
   if(waitFlag) {
