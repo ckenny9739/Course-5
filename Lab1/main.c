@@ -576,10 +576,22 @@ int main(int argc, char* argv[])
 	  }
 	  break;
 	case 'x':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  waitFlag = 1;
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'y':
+	  ret = getrusage(RUSAGE_SELF, &uStart);
 	  profileFlag = 1;
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	default:
 	  fprintf(stderr, "Error - How did you get here?\n");
@@ -621,5 +633,10 @@ int main(int argc, char* argv[])
   }
   free(file_descriptors);
   free(args);
+  for(l = 0; l < argc; l++) {
+    free(copy[l]);
+  }
+  free(copy);
+  free(procArr);
   exit(return_value);
 }
