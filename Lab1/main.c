@@ -576,14 +576,7 @@ int main(int argc, char* argv[])
 	  }
 	  break;
 	case 'x':
-	  if(profileFlag) {
-	    ret = getrusage(RUSAGE_SELF, &uStart);
-	  }
 	  waitFlag = 1;
-	  if(profileFlag) {
-	    ret = getrusage(RUSAGE_SELF, &uEnd);
-	    print_profile(&uStart, &uEnd);
-	  }
 	  break;
 	case 'y':
 	  profileFlag = 1;
@@ -595,6 +588,9 @@ int main(int argc, char* argv[])
 	}
     }
    if(waitFlag) {
+     if(profileFlag) {
+       ret = getrusage(RUSAGE_CHILDREN, &uStart);
+     }
      for(i=0; i < fd_ind; i++)
       close(file_descriptors[i]);
 
@@ -610,12 +606,17 @@ int main(int argc, char* argv[])
 	  if (WEXITSTATUS(stat) > 0)
 	    return_value = return_value > WEXITSTATUS(stat) ? return_value : WEXITSTATUS(stat);
 	  printf("%d", WEXITSTATUS(stat));
-	  for(i = procArr[j].start; i != procArr[j].end; i++)
-	    printf(" %s", copy[i]);
+	  int p;
+	  for(p = procArr[j].start; p != procArr[j].end; p++)
+	    printf(" %s", copy[p]);
 	  printf("\n");
 	  break;
 	}
       }
+    }
+    if(profileFlag) {
+      ret = getrusage(RUSAGE_CHILDREN, &uEnd);
+      print_profile(&uStart, &uEnd);
     }
   }
   free(file_descriptors);
