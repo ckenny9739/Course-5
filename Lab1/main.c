@@ -39,6 +39,27 @@ void simpsh_handler(int signum)
   exit(signum);
 }
 
+void print_profile(struct rusage *start, struct rusage *end) {
+  long int ms = end->ru_stime.tv_usec - start->ru_stime.tv_usec;
+  int carry = 0;
+  if(ms < 0) {
+    ms += 1000000;
+    carry = 1;
+  }
+  long int sec = end->ru_stime.tv_sec - start->ru_stime.tv_sec - carry;
+  printf("System time: %ld.%06ld\t", sec, ms);
+
+  ms = end->ru_utime.tv_usec - start->ru_utime.tv_usec;
+  carry = 0;
+  if(ms < 0) {
+    ms += 1000000;
+    carry = 1;
+  }
+  sec = end->ru_utime.tv_sec - start->ru_utime.tv_sec - carry;
+  printf("User time: %ld.%06ld\n", sec, ms);
+}
+
+
 // Main
 
 int main(int argc, char* argv[])
@@ -77,6 +98,7 @@ int main(int argc, char* argv[])
       {"default",   required_argument,   0, 'v'},
       {"pause",     no_argument,         0, 'w'},
       {"wait",      no_argument,         0, 'x'},
+      {"profile",   no_argument,         0, 'y'},
       {0,0,0,0},
     };
 
@@ -100,6 +122,9 @@ int main(int argc, char* argv[])
   unsigned int arg_size = 512;
   char **args = (char**) malloc(arg_size*sizeof(char*));
   int argvInd;
+  int profileFlag = 0;
+  struct rusage uStart;
+  struct rusage uEnd;
   
   struct proc {
     pid_t id;
@@ -112,9 +137,7 @@ int main(int argc, char* argv[])
   while (iarg != -1)
     {
       j = 0;
-      //printf("argv has %s\n", argv[optind]);
-      iarg = getopt_long(argc, argv, "a:b:c:defghijklmnop:qrs:t:u:v:wx", long_opts, &option_index);
-      //printf("iarg : %d\n", iarg);
+      iarg = getopt_long(argc, argv, "a:b:c:defghijklmnop:qrs:t:u:v:wxy", long_opts, &option_index);
       
       if (iarg == -1)
 	break;
@@ -140,22 +163,13 @@ int main(int argc, char* argv[])
 	  (strlen(argv[optind]) < 2 || argv[optind][0] != '-' || argv[optind][1] != '-')) {
 	fprintf(stderr, "Invalid Argument - Option has no argument\n");
       }
-
-      int who = RUSAGE_SELF;
-      struct rusage usage;
-      ret = getrusage(who, &usage);
-      printf("ret: %d\n", ret);
-      printf("ru_utime.tv_sec: %ld, ru_utime.tv_usec: %ld\n", (long int) usage.ru_utime.tv_sec, (long int) usage.ru_utime.tv_usec);
-      printf("ru_stime.tv_sec: %ld, ru_stime.tv_usec: %ld\n", (long int) usage.ru_stime.tv_sec, (long int) usage.ru_stime.tv_usec);
-
-      for (i = 0; i < 1000000; i++)
-	{
-	  int x = 2;
-	}
-
+      
       switch (iarg)
 	{
 	case 'a':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  ret = check_size(file_descriptors, fd_ind, (&fd_size));
 	  if (ret == -1) {
 	    fprintf(stderr, "Memory allocation error for file descriptors\n");
@@ -170,11 +184,18 @@ int main(int argc, char* argv[])
 	  }
 	  file_descriptors[fd_ind++] = ret;
 	  check_args(argv, argc, optind);
-	  //  printf("file_descriptors[fd_ind++] (for read) : %d\n", ret);
-	  //  printf("Finished read\n");
+
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
+	  
 	  break;
 	  
 	case 'b':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  ret = check_size(file_descriptors, fd_ind, (&fd_size));
 	  if (ret == -1) {
 	    fprintf(stderr, "Memory allocation error for file descriptors\n");
@@ -189,11 +210,18 @@ int main(int argc, char* argv[])
 	  }
 	  file_descriptors[fd_ind++] = ret;
 	  check_args(argv, argc, optind);
-	  //  printf("file_descriptors[fd_ind++] (for write) : %d\n", ret);
-	  //  printf("Finished write\n");
+
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
+	  
 	  break;
 	  
 	case 'c':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  if(argc - optind < 4) {
 	    fprintf(stderr, "Not enough arguments\n");
 	    return_value = 1;
@@ -218,12 +246,7 @@ int main(int argc, char* argv[])
 	    break;
 	  }
 
-	  //printf("optind is pointing to %s\n", argv[optind]);
-	  //printf("optind is pointing to %s\n", argv[optind]);
-	  //printf("optind is pointing to %s\n", argv[optind]);
-	  //printf("optind is pointing to %s\n", argv[optind]);
 	  argvInd = optind;
-	  //	  printf("Beginning: %s %d\n", argv[argvInd], argvInd);
 	  for (i = optind; i < argc; i++)
 	    {
 	      if (strlen(argv[i]) > 2 && (argv[i][0] == '-' && argv[i][1] == '-'))
@@ -231,7 +254,6 @@ int main(int argc, char* argv[])
 	      while (strlen(argv[i]) >= arg_size)
 		check_size(args, arg_ind, &arg_size);
 	      args[j++] = argv[i];
-	      //printf("optind is pointing to %s\n", argv[optind]);
 	      optind++;
 	    }
 	  args[j] = NULL;
@@ -241,12 +263,10 @@ int main(int argc, char* argv[])
 	    break;
 	  }
 	  cPID = fork();
-	  //  printf("Finished fork\n");
 	  if (cPID >= 0)
 	    {
 	      if (cPID == 0) // Child process
 		{
-		  //printf("Child Process: %s\n", args[0]);
 		  if (dup2(file_descriptors[fdi], 0) == -1) {
 		    fprintf(stderr, "Dup2 error - input\n");
 		    return_value = 1;
@@ -268,19 +288,10 @@ int main(int argc, char* argv[])
 		      close(file_descriptors[i]);
 		  }
 		  
-		  // printf("Round 2: input: %d, output: %d, error: %d\n", fdi, fdo, fde);
-		  // printf("Command: %s\n", args[0]);
-		  // printf("Arguments: %s\n", args[0]);
-		  // printf("Arguments: %s\n", args[1]);
-		  // printf("Arguments: %s\n", args[2]);
-		  // printf("Arguments: %s\n", args[3]);
-		  // printf("Execvp running\n");
-
 		  ret = execvp(args[0], args);
 		  fprintf(stderr, "Execvp returned - FAILURE\n");
 		  // Put in the command name in first, args (including args[0] as name) in second
 		  // Error check for error in execvp
-		  // fprintf(stderr, "execvp error\n");
 		  exit(1); // Exit because 1 failed
 		}
 	      else {
@@ -288,7 +299,6 @@ int main(int argc, char* argv[])
 		procArr[pCount].id = cPID;
 		procArr[pCount].start = argvInd;
 		procArr[pCount].end = optind;
-		//printf("argv[start] = %s, argv[end] = %s\n", argv[argvInd], argv[optind]);
 		pCount++;
 	      }
 	   }
@@ -297,48 +307,136 @@ int main(int argc, char* argv[])
 	      fprintf(stderr, "Could not create child process\n");
 	      // fork failed
 	    }
-	  // printf("Thread - %d Finished command\n", cPID);
-	  //	  printf("End: %s %d\n", argv[argvInd], argvInd);
-	  //printf("End: %s %d\n", argv[optind], optind);
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'd':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  verbose_flag = 1;
-	  // printf("Finished verbose\n");
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
+	  
 	  break;
 	case 'e':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  bit_mask |= O_APPEND;
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'f':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  bit_mask |= O_CLOEXEC;
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'g':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  bit_mask |= O_CREAT;
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'h':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  bit_mask |= O_DIRECTORY;
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'i':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  bit_mask |= O_DSYNC;
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'j':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  bit_mask |= O_EXCL;
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'k':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  bit_mask |= O_NOFOLLOW;
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'l':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  bit_mask |= O_NONBLOCK;
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'm':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  bit_mask |= O_RSYNC;
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'n':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  bit_mask |= O_SYNC;
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'o':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  bit_mask |= O_TRUNC;
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'p':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  ret = check_size(file_descriptors, fd_ind, (&fd_size));
 	  if (ret == -1) {
 	    fprintf(stderr, "Memory allocation error for file descriptors\n");
@@ -354,10 +452,15 @@ int main(int argc, char* argv[])
 	  }
 	  file_descriptors[fd_ind++] = ret;
 	  check_args(argv, argc, optind);
-	  //  printf("file_descriptors[fd_ind++] (for Read/Write) : %d\n", ret);
-	  //  printf("Finished Read/Write\n");
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'q':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  // Use + 1 to check for 2 open file descriptors because pipe uses 2
 	  ret = check_size(file_descriptors, fd_ind + 1, (&fd_size));
 	  if (ret == -1) {
@@ -373,11 +476,25 @@ int main(int argc, char* argv[])
 	  }
 	  file_descriptors[fd_ind++] = pipe_fd[0];
 	  file_descriptors[fd_ind++] = pipe_fd[1];
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'r':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  raise(SIGSEGV);
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 's':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  if(sscanf(optarg, "%i", &ret) < 1 || ret >= fd_ind) {
 	    fprintf(stderr, "Error - Not a file descriptor\n");
 	    return_value = 1;
@@ -386,8 +503,15 @@ int main(int argc, char* argv[])
 	  if (close(file_descriptors[ret]) < 0)
 	    fprintf(stderr, "Error closing\n");
 	  check_args(argv, argc, optind);
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 't':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  if(sscanf(optarg, "%i", &ret) < 1) {
 	    fprintf(stderr, "Error - Not a signal number\n");
 	    return_value = 1;
@@ -398,8 +522,15 @@ int main(int argc, char* argv[])
 	    fprintf(stderr, "Error catching\n");
 	  }
 	  check_args(argv, argc, optind);
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'u':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  if(sscanf(optarg, "%i", &ret) < 1) {
 	    fprintf(stderr, "Error - Not a signal number\n");
 	    return_value = 1;
@@ -410,8 +541,15 @@ int main(int argc, char* argv[])
 	    return_value = 1;
 	  }
 	  check_args(argv, argc, optind);
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'v':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  if(sscanf(optarg, "%i", &ret) < 1) {
 	    fprintf(stderr, "Error - Not a signal number\n");
 	    return_value = 1;
@@ -422,29 +560,42 @@ int main(int argc, char* argv[])
 	    return_value = 1;
 	  }
 	  check_args(argv, argc, optind);
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'w':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  pause();
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
 	  break;
 	case 'x':
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uStart);
+	  }
 	  waitFlag = 1;
+	  if(profileFlag) {
+	    ret = getrusage(RUSAGE_SELF, &uEnd);
+	    print_profile(&uStart, &uEnd);
+	  }
+	  break;
+	case 'y':
+	  profileFlag = 1;
 	  break;
 	default:
 	  fprintf(stderr, "Error - How did you get here?\n");
 	  return_value = 1;
 	  break;
 	}
-      ret = getrusage(who, &usage);
-      printf("ret: %d\n", ret);
-      printf("ru_utime.tv_sec: %ld, ru_utime.tv_usec: %ld\n", (long int) usage.ru_utime.tv_sec, (long int) usage.ru_utime.tv_usec);
-      printf("ru_stime.tv_sec: %ld, ru_stime.tv_usec: %ld\n", (long int) usage.ru_stime.tv_sec, (long int) usage.ru_stime.tv_usec);
     }
-  //  printf("Main returned\n");
-  if(waitFlag) {
-    // for(i = 0; i < argc; i++) {
-    //  printf("%s %d \n", argv[i], i);
-    // }
-    for(i=0; i < fd_ind; i++)
+   if(waitFlag) {
+     for(i=0; i < fd_ind; i++)
       close(file_descriptors[i]);
 
     for(i=0; i < pCount; i++) {
@@ -453,19 +604,14 @@ int main(int argc, char* argv[])
 	fprintf(stderr, "Process Failed\n");
 	return_value = 1;
       }
-      // for(j = 0; j < argc; j++) {
-      //printf("%s %d \n", argv[j], j);
-      //}
+ 
       for(j=0; j < pCount; j++) {
 	if (procArr[j].id == ret) {
 	  if (WEXITSTATUS(stat) > 0)
 	    return_value = return_value > WEXITSTATUS(stat) ? return_value : WEXITSTATUS(stat);
-	  //printf("pid: %d, argv[start]: %s, argv[end]: %s\n", procArr[j].id, argv[procArr[j].start], argv[procArr[j].end]);
 	  printf("%d", WEXITSTATUS(stat));
-	  //  printf("\nWait\n");
-	  int p;
-	  for(p = procArr[j].start; p != procArr[j].end; p++)
-	    printf(" %s", copy[p]);
+	  for(i = procArr[j].start; i != procArr[j].end; i++)
+	    printf(" %s", copy[i]);
 	  printf("\n");
 	  break;
 	}
@@ -474,6 +620,5 @@ int main(int argc, char* argv[])
   }
   free(file_descriptors);
   free(args);
-//  printf("Main exited with %d\n", return_value);
   exit(return_value);
 }
