@@ -1,3 +1,100 @@
+CS 111 - Lab 1C
+
+Partners: Connor Kenny (304437322) and Jusin Liu (504487373)
+
+NOTE: We have added our benchmarks to our make check as requested by the TA's.
+      Our benchmarks require very large files and are created in a very specific way
+      through our setup.sh script. This script runs at the beginning of make check and
+      takes up to 20 seconds to run.
+      DO NOT BE ALARMED BY THIS - LET IT RUN AND EVERYTHING WILL WORK OUT, WE PROMISE.
+
+Implementation:
+We used our implementation for lab 1B below as a base and expanded from there.
+
+profile: At first, we played around with the get_rusage function to figure out exactly what it does.
+	 Then we just put the calling part of the function at the beginning and end of each option.
+	 The only tricky part was implementing the time for the children processes produced by command.
+	 This was done in the wait portion so it only works with wait - if you don't use wait, no children
+	 time will be outputted.
+PDF: There is also a pdf that we turned in with the table of the comparisons and a conclusion drawn from that data.
+     It has all the information for the comparisons.
+
+setup.sh:
+
+# Start of setup.sh
+
+printf "Setup may take up to 20 seconds"
+
+for i in {1..1000}
+do
+    base64 /dev/urandom | head -c 10 >> thousandLines.txt
+        echo \n >> thousandLines.txt
+	done
+
+base64 /dev/urandom | head -c 10000000 > tenMB.txt
+echo "output" > output.txt
+echo "error" > error.txt
+
+# End of setup.sh
+
+benchmarks.sh:
+
+# Start of benchmarks.sh
+
+./simpsh \
+	 --verbose \
+	 --profile \
+	 --rdonly tenMB.txt \
+	 --pipe \
+	 --pipe \
+	 --creat --trunc --wronly output.txt \
+	 --creat --append --wronly error.txt \
+	 --command 3 5 6 tr A-Z a-z \
+	 --command 0 2 6 sort \
+	 --command 1 4 6 cat output.txt - \
+	 --wait
+
+printf "\n"
+
+./simpsh \
+	 --verbose \
+	 --profile \
+	 --rdonly tenMB.txt \
+	 --pipe \
+	 --pipe \
+	 --creat --trunc --wronly output.txt \
+	 --creat --append --wronly error.txt \
+	 --command 3 5 6 uniq -u \
+	 --command 0 2 6 sed -e 's/\(.*\)/\L\1/' \
+	 --command 1 4 6 cat output.txt - \
+	 --wait
+
+printf "\n"
+
+./simpsh \
+	 --verbose \
+	 --profile \
+	 --rdonly thousandLines.txt \
+	 --pipe \
+	 --pipe \
+	 --creat --trunc --wronly output.txt \
+	 --creat --append --wronly error.txt \
+	 --append --rdwr tenMB.txt \
+	 --command 1 4 6 sort \
+	 --command 0 2 6 cat tenMB.txt - \
+	 --command 3 5 6 sed ':a;N;$!ba;s/\n/ /g'  \
+	 --wait
+
+# End of benchmarks.sh
+
+Limitations:
+No known limitations for Lab 1C
+
+Extra Features:
+No Extra Features for Lab 1C
+
+---------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------
 CS 111 - Lab 1B
 
 Partners: Connor Kenny (304437322) and Jusin Liu (504487373)
@@ -19,9 +116,6 @@ abort: Use raise() to force a segmentation fault.
 catch, ignore, default: We created a very simple signal handler for catch and just used the basic options for ignore
       and default, respectively.
 pause: We called pause.
-
-This implementation should work on all test cases outlined by the spec and TA's. We have chosen to let --close be the method for
-avoiding the infinite waiting problem.
 
 Limitations:
 No known limitations for Lab 1B

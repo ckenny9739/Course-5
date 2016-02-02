@@ -14,7 +14,7 @@ SIMPSH_OBJECTS = $(subst .c,.o,$(SIMPSH_SOURCES))
 
 DIST_SOURCES = \
   $(SIMPSH_SOURCES)  Makefile \
-  $(TESTS) check-dist README
+  $(TESTS) check-dist README setup.sh benchmarks.sh
 
 simpsh: $(SIMPSH_OBJECTS)
 	$(CC) $(CFLAGS) -o $@ $(SIMPSH_OBJECTS)
@@ -30,6 +30,10 @@ $(DISTDIR).tar.gz: $(DIST_SOURCES) check-dist
 check: $(TEST_BASES)
 
 $(TEST_BASES): simpsh
+	chmod +x setup.sh
+	./setup.sh
+	chmod +x benchmarks.sh
+	./benchmarks.sh
 	chmod +x test.sh
 	./test.sh
 
