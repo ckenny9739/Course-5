@@ -116,34 +116,20 @@ As you can see, the number of operations goes down exponentially as the number
 of iterations increases.
 
 1.2
-1) The average cost per iteration drops with increasing iterations because the overhead is a larger
-percentatge of overall time when the number of threads/iterations is small. As these numbers
-increase, more time is spent on the threads' actual work instead of setting them up.
+1) The average cost per iteration drops with increasing iterations because the overhead is a larger percentatge of overall time when the number of threads/iterations is small. As these numbers increase, more time is spent on the threads' actual work instead of setting them up.
 
-2) The correct cost would be without taking into account any overhead?
+2) The correct cost would be without taking into account any overhead. This could be found by taking the limit of the cost per operation as the number of iterations goes to infinity. It will tend towards a single value which is the correct cost. 
 
-3) The yield runs are much slower because not every time through the loop do we actually add.
-Sometimes, the yield function will be called and then the other threads will come in and cause
-the race condition. This basically makes sure that it is likely for the race condition error to
-happen.
+3) The yield runs are much slower because not every time through the loop do we actually add. Sometimes, the yield function will be called and then the other threads will come in and cause the race condition. This basically makes sure that it is likely for the race condition error to happen. Overall, the extra time is going into yielding instead of actually performing useful operations.
 
-4)
+4) We can never get exactly valid timings because we added an extra conditional statement. With this statement, even at only 1 thread who cannot yield to any others, it has to go through the check which will actually affect the timings. We can get nearly perfect times with only one thread because it basically never yields. As we add threads, it becomes more and more of a time sink because each thread has to yield before it can actually perform an operation. If we could somehow account for these times perfectly, then we could subtract the yield time from the operational time to get the real times. 
 
 1.3
-1) They perform similarly because there are not many computations for the lock so there is a very
-low chance of actually needing to use it. You don't have to waste a lot of time trying to get the lock.
-When you have like 20 threads, only 1 gets it at a time so 19 wait. When there are only 2, only 1 has
-to wait.
+1) They perform similarly because there are not many computations for the lock so there is a very low chance of actually needing to use it. You don't have to waste a lot of time trying to get the lock. When you have 20 threads, only 1 gets it at a time so 19 wait. When there are only 2, only 1 has to wait. When there is only 1, none ever have to wait.
 
-2) The options slow down because they require the add to only be called when the thread has the lock.
-This makes it so that as you add threads, more are waiting and wasting time. This makes it more
-inefficient, especially as threads increases. It is important however if we want to avoid the
-race conditions and get the correct answers.
+2) The options slow down because they require the add to only be called when the thread has the lock. This makes it so that as you add threads, more are waiting and wasting time. This makes it more inefficient, especially as threads increases. It is important however if we want to avoid the race conditions and get the correct answer of 0.
 
-3) It has to do the wait loop which takes a lot of time and renders a thread useless. With a lot of
-threads, it will make a lot of threads waste time which is very costly.
-
-
+3) Spin locks are very expensive because many threads get stuck spinning. It has to do with the wait loop which takes a lot of time and renders a thread useless. With a lot of threads, it will make a lot of threads waste time which is very costly. The more threads that you have, the more time that a (n-1) / n threads will be wasting cpu time spinning.
 
 ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------
