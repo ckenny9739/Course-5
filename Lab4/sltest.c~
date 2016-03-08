@@ -1,0 +1,7 @@
+// Part 2 
+
+#include "SortedList.h"
+
+insert() {
+  critical section here (Put yield inside this critical section)
+    segmentation faults may happen

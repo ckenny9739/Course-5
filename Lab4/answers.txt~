@@ -1,0 +1,165 @@
+Connor Kenny and Justin Liu
+CS 111 - Lab 4
+
+PART 1:
+
+We defined fairly consitently failing as happening more than 60% of the time when run over 10 times.
+For each thread number here is the number of iterations it took us to fairly consistently fail:
+1: N/A bc never failed
+2: ~1500-2000
+3: ~1100 
+4: ~900
+5: ~800
+6: ~700
+7: ~600
+8: ~500
+9: ~450
+10:~400 
+
+
+1.1
+1) It takes so iterations because as you add iterations, there are more chances for the race
+condition to occur. With a small number of iterations, the odds are less. It takes more threads to make
+it fail for a fewer number of iterations because with more threads there are more chances that two threads
+will try to access count at the same time. This increases the chances of the race condition making count
+incorrect. Also, we probably have a lot more failures than are printed because even if the counter ends up
+at 0, that doesn't mean that the race conditions never messed up count. It just means that it also happened
+to fix it on the other side (add only 1 instead of 2, then only subtract 1 instead of 2).
+Basically, when the number of threads or number of iterations is low there is a very
+small chance that the race condition will mess up the program because it will run so fast. For
+the program to result in an error, we need a lot of threads to have the chance to call add at
+the same time and/or have a lot of iterations so we have a bigger chance to fail.
+
+2) Small number of iterations do not fail very often because there is basically no time
+for the race condition to occur in the add function. We found that the race condition error happens
+when the number of threads or iterations is high because that increases the odds of two threads
+being inside the add function at the same time, which can result in both accessing the pointer and then
+increasing it or decreasing it incorrectly. Basically, for small number of iterations, there are less chances
+for the race condition to ruin our results.
+
+Number of iterations needed for a failure (with yield):
+1: N/A bc never failed
+2: ~20
+3: ~15
+4: ~13
+5: ~10
+6: ~7
+7: ~6
+8: ~6
+9: ~6
+10:~6
+
+The number of iterations needed basically dropped by a factor of 100!!!
+
+Comparison of times for regular and yield:
+# Threads     # Iterations	Regular(ns)	Yield(ns)
+1 	      1			220K		268K
+1	      100		233K		347K
+1	      10000		433K		924K
+
+2	      1			210K		218K
+2	      100		220K		328K
+2	      10000		1.29M		11.4M
+
+3	      1			217K		226K
+3             100		219K		328K
+3             10000		2.21M		10.5M
+
+4	      1			270K		296K
+4	      100		269K		374K
+4	      10000		2.88M		10.5M
+
+5	      1			304K		302K
+5	      100		313K		413K
+5	      10000		3.44M		10.7M
+
+6	      1			327K		362K
+6	      100		328K		501K
+6	      10000		4.46M		10.9M
+
+7	      1			320K		330K
+7	      100		341K		455K
+7	      10000		5.57M		13.9M
+
+8	      1			360K		367K
+8	      100		378K		797K
+8	      10000		6.7M		14.4M
+	      
+9	      1			397K		424K
+9	      100		412K		519K
+9	      10000		7.17M		16.1M
+
+10	      1			435K		760K
+10	      100		467K		551K
+10	      10000		7.82M		17.6M
+
+
+Obviously, the ones with yield take much longer than the ones that don't.
+We found it to be roughly 1.5 to 10 faster depending on number of threads.
+As more threads are added, it goes from roughly 10x faster (2 threads) for
+Regular and goes to roughly 2x faster (10 threads) for Regular.
+
+1.2
+1) The average cost per iteration drops with increasing iterations because the overhead is a larger
+percentatge of overall time when the number of threads/iterations is small. As these numbers
+increase, more time is spent on the threads' actual work instead of setting them up.
+
+2) The correct cost would be without taking into account any overhead?
+
+3) The yield runs are much slower because not every time through the loop do we actually add.
+Sometimes, the yield function will be called and then the other threads will come in and cause
+the race condition. This basically makes sure that it is likely for the race condition error to
+happen.
+
+4)
+
+1.3
+1) They perform similarly because there are not many computations for the lock so there is a very
+low chance of actually needing to use it. You don't have to waste a lot of time trying to get the lock.
+When you have like 20 threads, only 1 gets it at a time so 19 wait. When there are only 2, only 1 has
+to wait.
+
+2) The options slow down because they require the add to only be called when the thread has the lock.
+This makes it so that as you add threads, more are waiting and wasting time. This makes it more
+inefficient, especially as threads increases. It is important however if we want to avoid the
+race conditions and get the correct answers.
+
+3) It has to do the wait loop which takes a lot of time and renders a thread useless. With a lot of
+threads, it will make a lot of threads waste time which is very costly.
+
+
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+
+2.1
+As number of iterations increases, so does the time per operation. This means that the time per
+operation is proportional to the
+
+The time to operate is proportional to the length of the list
+
+divide the time by the list size? Not always right
+
+Since we insert at the beginning, when we do lookup (if done in same order, each is proporitonal
+to lenght of list). If we reverse the order of where we look (we can get it in O(1))
+
+We can get it to be O(1), but if we shuffle the list then it is proportional
+
+
+2.2
+
+2.3
+
+------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------
+
+3.1
+1)
+
+2)
+
+3)
+
+4)
+
+5)
