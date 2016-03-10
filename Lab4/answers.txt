@@ -94,26 +94,18 @@ Comparison of times for regular and yield:
 10	      10000		7.82M		17.6M
 
 
-Obviously, the ones with yield take much longer than the ones that don't.
-We found it to be roughly 1.5 to 10 faster depending on number of threads.
-As more threads are added, it goes from roughly 10x faster (2 threads) for
-Regular and goes to roughly 2x faster (10 threads) for Regular.
+Obviously, the ones with yield take much longer than the ones that don't. We found it to be roughly 1.5 to 10 faster depending on number of threads. As more threads are added, it goes from roughly 10x faster (2 threads) for Regular and goes to roughly 2x faster (10 threads) for Regular.
 
-We graphed the average cost per operation by taking the time per operation
-as a function of number of iterations. We could only go to 100 iterations
-because the scale of the graph got too out of hand. The graph shows that
-the cost per operation goes from roughly 100K to almost 0. If we were to
-graph it over all iterations from 0 to infinity, it would definitely go
-to 0. For some reference for bigger iteration numbers, we also calculated these
-values: (number of iterations)	    (time per op in ns)
-1000	134
-5000	29
-10000	15
-50000	10
-100000	9
+(Graph is in file nonyield.pdf) We graphed the average cost per operation by taking the time per operation as a function of number of iterations. We could only go to 100 iterations because the scale of the graph got too out of hand. The graph shows that the cost per operation goes from roughly 100K to almost 0. If we were to graph it over all iterations from 0 to infinity, it would definitely tend toward the actual cost to perform the action. For some reference for bigger iteration numbers, we also calculated these values:
+(number of iterations)	    (time per op in ns)
+1000	   		    134
+5000			    29
+10000			    15
+50000			    10
+100000			    9
 
 As you can see, the number of operations goes down exponentially as the number
-of iterations increases.
+of iterations increases and tends towards a number that is actually lower than 10 ns per operation.
 
 1.2
 1) The average cost per iteration drops with increasing iterations because the overhead is a larger percentatge of overall time when the number of threads/iterations is small. As these numbers increase, more time is spent on the threads' actual work instead of setting them up.
@@ -124,6 +116,7 @@ of iterations increases.
 
 4) We can never get exactly valid timings because we added an extra conditional statement. With this statement, even at only 1 thread who cannot yield to any others, it has to go through the check which will actually affect the timings. We can get nearly perfect times with only one thread because it basically never yields. As we add threads, it becomes more and more of a time sink because each thread has to yield before it can actually perform an operation. If we could somehow account for these times perfectly, then we could subtract the yield time from the operational time to get the real times. 
 
+
 1.3
 1) They perform similarly because there are not many computations for the lock so there is a very low chance of actually needing to use it. You don't have to waste a lot of time trying to get the lock. When you have 20 threads, only 1 gets it at a time so 19 wait. When there are only 2, only 1 has to wait. When there is only 1, none ever have to wait.
 
@@ -131,19 +124,19 @@ of iterations increases.
 
 3) Spin locks are very expensive because many threads get stuck spinning. It has to do with the wait loop which takes a lot of time and renders a thread useless. With a lot of threads, it will make a lot of threads waste time which is very costly. The more threads that you have, the more time that a (n-1) / n threads will be wasting cpu time spinning.
 
+We graphed the data on Excel and put them in the following files: unprotected.pdf, mutex.pdf, spinlock.pdf and comswap.pdf for unprotected, mutext, spin lock and compare-and-swap.  
+
 ------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------
 
 2.1
-As number of iterations increases, so does the time per operation. This means that the time per
-operation is proportional to the
+As number of iterations increases, so does the time per operation. This means that the time per operation is proportional to the
 
 The time to operate is proportional to the length of the list
 
 divide the time by the list size? Not always right
 
-Since we insert at the beginning, when we do lookup (if done in same order, each is proporitonal
-to lenght of list). If we reverse the order of where we look (we can get it in O(1))
+Since we insert at the beginning, when we do lookup (if done in same order, each is proporitonal to lenght of list). If we reverse the order of where we look (we can get it in O(1))
 
 We can get it to be O(1), but if we shuffle the list then it is proportional
 
@@ -156,12 +149,13 @@ We can get it to be O(1), but if we shuffle the list then it is proportional
 ------------------------------------------------------------------------------------------------
 
 3.1
-1)
 
-2)
+1) The mutex must be held before you can call pthread_cond_wait because if you do not do this, a thread can miss its wakeup call. Basically, if a thread acquires the mutext first, then is waiting for the condition to become true and another thread makes the condition true and can beat the first thread to action. This makes the original thread who has been waiting for the condition to become true miss its chance to wake up. This problem is solved if both have to acquire the mutex before being able to call pthread_cond_wait. Overall, each thread must acquire the mutex or else there is an unavoidable race condition of another thread coming in and messing with the shared data when the original thread should have had a chance to respond.
 
-3)
+2) The mutex must be released so that other threads who are waiting on the condition or those threads that can actually change the condition to true have a chance to work with the shared data. If the thread never gives up the shared mutex, no other threads could ever go in and change the data to let the original thread know that it is okay to move on because the original predicate condition is now true. Overall, this is the only way that the original thread can repeatedly check for a change in the predicate condition value reliably and for the other threads to have a chance at changing the shared memory.
 
-4)
+3) The mutex must be reacquired when the calling thread resumes because it needs to make sure that the shared data does not get changed any further from what made the condition variable true. If it were not to acquire the mutex and just wake up randomly, there is a chance that another thread could come in and make the condition false again. This would leave the original thread in a very awkward position with really no guidance of what to do. Overall, the mutex must be reacquired so that the resuming thread knows exactly which state it is returning back into so that it can do its job accordingly.
 
-5)
+4) This all must be done inside pthread_cond_wait because it does these operations atomically. If the user were to just unlock the mutex on his own and then wait for the condition to become true before waking back up, there would be race conditions in between unlocking the mutex manually and checking the condition variable. By putting it all in a single system call, we are able to be sure that the check is done properly as long as the threads follow the designated preconditions for the system call. The idea is that pthread_cond_wait is waiting for the certain condition in shared memory to become true. This is a very dangerous place if synchronization is not utilized so the pthread library allows programmers to utilize this system call to reliably do the work without risking extra race conditions.
+
+5) The bulk of the work that pthread_cond_wait does is to check the condition and sleep if the condition has not been met yet. This needs to be done atomically as there is a chance that another thread could come in and make the condition true after the the thread checked the condition but before it went to sleep. This is why the thread must control the mutex before it can call the function. This way no other threads can sneak in an mess with the shared memory. In order to do this entirely in user mode, the mutex must be acquired before checking and must be atomically released upon sleeping. It is possible to do this, but it does require that the critical section be perfectly atomic. If it is not, then there is no way to ensure that anything is done correctly and pthread_cond_wait would be useless. 
