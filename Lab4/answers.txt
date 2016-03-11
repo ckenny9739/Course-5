@@ -18,24 +18,9 @@ For each thread number here is the number of iterations it took us to fairly con
 
 
 1.1
-1) It takes so iterations because as you add iterations, there are more chances for the race
-condition to occur. With a small number of iterations, the odds are less. It takes more threads to make
-it fail for a fewer number of iterations because with more threads there are more chances that two threads
-will try to access count at the same time. This increases the chances of the race condition making count
-incorrect. Also, we probably have a lot more failures than are printed because even if the counter ends up
-at 0, that doesn't mean that the race conditions never messed up count. It just means that it also happened
-to fix it on the other side (add only 1 instead of 2, then only subtract 1 instead of 2).
-Basically, when the number of threads or number of iterations is low there is a very
-small chance that the race condition will mess up the program because it will run so fast. For
-the program to result in an error, we need a lot of threads to have the chance to call add at
-the same time and/or have a lot of iterations so we have a bigger chance to fail.
+1) It takes so iterations because as you add iterations, there are more chances for the race condition to occur. With a small number of iterations, the odds are less. It takes more threads to make it fail for a fewer number of iterations because with more threads there are more chances that two threads will try to access count at the same time. This increases the chances of the race condition making count incorrect. Also, we probably have a lot more failures than are printed because even if the counter ends up at 0, that doesn't mean that the race conditions never messed up count. It just means that it also happened to fix it on the other side (add only 1 instead of 2, then only subtract 1 instead of 2). Basically, when the number of threads or number of iterations is low there is a very small chance that the race condition will mess up the program because it will run so fast. For the program to result in an error, we need a lot of threads to have the chance to call add at the same time and/or have a lot of iterations so we have a bigger chance to fail.
 
-2) Small number of iterations do not fail very often because there is basically no time
-for the race condition to occur in the add function. We found that the race condition error happens
-when the number of threads or iterations is high because that increases the odds of two threads
-being inside the add function at the same time, which can result in both accessing the pointer and then
-increasing it or decreasing it incorrectly. Basically, for small number of iterations, there are less chances
-for the race condition to ruin our results.
+2) Small number of iterations do not fail very often because there is basically no time for the race condition to occur in the add function. We found that the race condition error happens when the number of threads or iterations is high because that increases the odds of two threads being inside the add function at the same time, which can result in both accessing the pointer and then increasing it or decreasing it incorrectly. Basically, for small number of iterations, there are less chances for the race condition to ruin our results.
 
 Number of iterations needed for a failure (with yield):
 1: N/A bc never failed

@@ -1,4 +1,5 @@
-// Part 1 
+// Part 1
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
